@@ -15,13 +15,16 @@ import java.util.Random;
  * Created by cmccarthy on 1/25/19.
  */
 public class SlowProducer {
+
+	final static String simpleTopic = "SimpleTopic";
+
 	public static void main(String[] args) throws Exception {
 		final KafkaProducer<String,String> slowProducer =
-				new KafkaProducer<String,String>(ImmutableMap.<String,Object>of(
-				"key.serializer", StringSerializer.class,
-				"value.serializer", StringSerializer.class,
-				"bootstrap.servers", "127.0.0.1:9092",
-				"client.id", "slowProducer"));
+				new KafkaProducer<>(ImmutableMap.<String, Object>of(
+						"key.serializer", StringSerializer.class,
+						"value.serializer", StringSerializer.class,
+						"bootstrap.servers", "127.0.0.1:9092",
+						"client.id", "slowProducer"));
 
 		while (true) {
 			produceSomething(slowProducer);
@@ -32,6 +35,7 @@ public class SlowProducer {
 	private static void produceSomething(KafkaProducer<String, String> producer) throws InterruptedException {
 		Random r = new Random();
 		Thread.sleep(r.nextInt(200));
+		NewRelic.addCustomParameter("KafkaTopic", simpleTopic);
 		try {
 			final String payload = NewRelic.getAgent().getTransaction().createDistributedTracePayload().text();
 			ImmutableList<Header> headers = ImmutableList.of((Header)new RecordHeader(
@@ -39,7 +43,7 @@ public class SlowProducer {
 //			if (!payload.isEmpty()) {
 //				System.out.println(payload);
 //			}
-			producer.send(new ProducerRecord<>("SimpleTopic", 0, "hello", "world", headers));
+			producer.send(new ProducerRecord<>(simpleTopic, 0, "hello", "world", headers));
 		} finally {
 			producer.flush();
 		}

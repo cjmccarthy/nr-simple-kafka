@@ -16,6 +16,9 @@ import java.util.Random;
  * Created by cmccarthy on 1/25/19.
  */
 public class SimpleConsumer {
+
+	final static String simpleTopic = "SimpleTopic";
+
 	public static void main(String[] args) throws InterruptedException {
 		KafkaConsumer<String,String> simpleConsumer = new KafkaConsumer<>(
 				new ImmutableMap.Builder<String, Object>()
@@ -27,7 +30,7 @@ public class SimpleConsumer {
 						.put("enable.auto.commit", "true")
 						.build());
 
-		simpleConsumer.subscribe(ImmutableList.of("SimpleTopic"));
+		simpleConsumer.subscribe(ImmutableList.of(simpleTopic));
 
 		while (true) {
 			ConsumerRecords<String, String> records = simpleConsumer.poll(Duration.ofMillis(100));
@@ -41,6 +44,7 @@ public class SimpleConsumer {
 	private static void consumeRecord(ConsumerRecord<String, String> record) throws InterruptedException {
 		Random r = new Random();
 		Thread.sleep(r.nextInt(200));
+		NewRelic.addCustomParameter("KafkaTopic", simpleTopic);
 		record.headers().headers("NR-DT-PAYLOAD").forEach(header -> {
 			//System.out.println(Arrays.toString(header.value()));
 			NewRelic.getAgent().getTransaction().acceptDistributedTracePayload( new String(header.value(),
